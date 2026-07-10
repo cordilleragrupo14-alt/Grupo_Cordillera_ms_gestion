@@ -1,0 +1,77 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: ms-gestion-kpi
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/gestion_kpi}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    # Hibernate crea/actualiza las tablas ANTES de que se ejecute data.sql
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+      platform: postgres
+
+# URLs de los microservicios que este servicio consulta para consolidar KPIs
+clients:
+  ventas:
+    url: ${VENTAS_URL:http://localhost:8081}
+  logistica:
+    url: ${LOGISTICA_URL:http://localhost:8082}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Circuit Breaker del "cerebro": si ventas o logistica fallan, se activa
+# el fallback de GestionService (devuelve el ultimo KPI historico guardado).
+resilience4j:
+  circuitbreaker:
+    instances:
+      gestionCB:
+        register-health-indicator: true
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10000
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    instances:
+      gestionCB:
+        timeout-duration: 4s
+
+# Swagger UI queda disponible en /swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    cl.grupocordillera.gestion: INFO

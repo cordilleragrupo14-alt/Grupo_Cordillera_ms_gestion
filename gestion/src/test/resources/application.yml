@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:gestion_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: false
+  sql:
+    init:
+      mode: never
+
+clients:
+  ventas:
+    url: http://localhost:9991
+  logistica:
+    url: http://localhost:9992
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      gestionCB:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 2000
